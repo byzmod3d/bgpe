@@ -1,0 +1,19 @@
+BGPE uses the following third-party libraries.
+Their licenses are listed below.
+
+===========================================
+Tailwind CSS — MIT License
+https://github.com/tailwindlabs/tailwindcss
+Copyright (c) Tailwind Labs, Inc.
+[texto da licença MIT]
+
+===========================================
+Inter Font — SIL Open Font License 1.1
+https://github.com/rsms/inter
+Copyright (c) Rasmus Andersson
+[texto da licença]
+
+===========================================
+Font Awesome — CC BY 4.0 / SIL OFL 1.1
+https://fontawesome.com/license/free
+[texto da licença]
