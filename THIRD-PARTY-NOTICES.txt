@@ -1,19 +1,29 @@
-BGPE uses the following third-party libraries.
-Their licenses are listed below.
+BGPE — BravosGamebr Pixel Editor
+Third-Party Notices
 
-===========================================
-Tailwind CSS — MIT License
+This project uses the following third-party libraries.
+Full license texts are available at the links below.
+
+============================================================
+Tailwind CSS
 https://github.com/tailwindlabs/tailwindcss
+License: MIT
 Copyright (c) Tailwind Labs, Inc.
-[texto da licença MIT]
+Full license: https://github.com/tailwindlabs/tailwindcss/blob/master/LICENSE
 
-===========================================
-Inter Font — SIL Open Font License 1.1
+============================================================
+Inter Font
 https://github.com/rsms/inter
+License: SIL Open Font License 1.1
 Copyright (c) Rasmus Andersson
-[texto da licença]
+Full license: https://github.com/rsms/inter/blob/master/LICENSE.txt
 
-===========================================
-Font Awesome — CC BY 4.0 / SIL OFL 1.1
+============================================================
+Font Awesome Free
 https://fontawesome.com/license/free
-[texto da licença]
+License: CC BY 4.0 (icons) / SIL OFL 1.1 (fonts) / MIT (code)
+Copyright (c) Fonticons, Inc.
+Full license: https://fontawesome.com/license/free
+
+============================================================
+END OF NOTICES
