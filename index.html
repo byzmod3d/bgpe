@@ -1044,7 +1044,14 @@
         <div class="tool-icon"><svg viewBox="0 0 24 24"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg></div>
         <div class="tool-info">
           <h3><span data-i18n="tool.move">Move</span></h3>
-          <p data-i18n="tool.move.desc">Move the frame or selection freely. Press G to grab and drag it.</p>
+          <p data-i18n="tool.move.desc">Move the whole frame with the arrow keys. Shift+arrow moves 8 pixels at once.</p>
+        </div>
+      </div>
+      <div class="tool-card fade-in">
+        <div class="tool-icon"><svg viewBox="0 0 24 24"><path d="M9.06 11.9l8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/><line x1="17" y1="14" x2="22" y2="14"/><polyline points="19 12 22 14 19 16"/></svg></div>
+        <div class="tool-info">
+          <h3><span data-i18n="tool.mask">Mask</span></h3>
+          <p data-i18n="tool.mask.desc">Paint a free-form mask, then press R / G / S to transform only the masked area. Switching tools clears it automatically.</p>
         </div>
       </div>
       <div class="tool-card fade-in">
@@ -1212,6 +1219,9 @@
           <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td data-i18n="sc.ctrlc">Copy the selected area</td></tr>
           <tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td data-i18n="sc.ctrlv">Paste into the current selection</td></tr>
           <tr><td><kbd>Delete</kbd></td><td data-i18n="sc.del">Erase the contents of the current selection</td></tr>
+          <tr><td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd></td><td data-i18n="sc.arrows">Move the whole frame (with Move tool selected)</td></tr>
+          <tr><td><kbd>Shift</kbd>+<kbd>↑</kbd></td><td data-i18n="sc.shiftarrows">Move the frame 8 pixels at once</td></tr>
+          <tr><td><kbd>Tool click</kbd></td><td data-i18n="sc.switch_tool_clears_mask">Switching tools clears any painted mask automatically</td></tr>
         </tbody>
       </table>
     </div>
@@ -1329,7 +1339,7 @@ const translations = {
 
     "tools.label": "Tools",
     "tools.title": "Every tool you need. Nothing you don't.",
-    "tools.subtitle": "Eleven focused tools — each one designed for pixel-perfect work.",
+    "tools.subtitle": "Twelve focused tools — each one designed for pixel-perfect work.",
 
     "tool.brush": "Brush",
     "tool.brush.desc": "Paint pixels with 4 effects: Normal, Spray, Glow, and Texture. Size 1–16px.",
@@ -1342,15 +1352,17 @@ const translations = {
     "tool.picker": "Color Picker",
     "tool.picker.desc": "Click any pixel to grab its color as your active color.",
     "tool.rect": "Rectangle Select",
-    "tool.rect.desc": "Drag to select a rectangular area. Paint tools stay inside that box.",
+    "tool.rect.desc": "Drag to select a rectangular area. Paint tools stay inside that box. Press R / G / S to rotate, move, or scale the selection.",
     "tool.ellipse": "Ellipse Select",
-    "tool.ellipse.desc": "Same as Rectangle, but selects an ellipse. Great for circular sprites.",
+    "tool.ellipse.desc": "Same as Rectangle, but selects an ellipse. Great for circular sprites. Press R / G / S to rotate, move, or scale it.",
     "tool.lasso": "Lasso Select",
-    "tool.lasso.desc": "Click points to draw a custom selection polygon. Click near the first point to close.",
+    "tool.lasso.desc": "Click points to draw a custom selection polygon. Click near the first point to close. Press R / G / S to rotate, move, or scale it.",
     "tool.path": "Path Brush",
     "tool.path.desc": "Place points, right-click to apply. 12 styles: smooth, dotted, dashed, zigzag, wavy, ribbon, and more.",
     "tool.move": "Move",
-    "tool.move.desc": "Move the frame or selection freely. Press G to grab and drag it.",
+    "tool.move.desc": "Move the whole frame with the arrow keys. Shift+arrow moves 8 pixels at once.",
+    "tool.mask": "Mask",
+    "tool.mask.desc": "Paint a free-form mask, then press R / G / S to rotate, move, or scale only the masked area. Switching tools clears it automatically.",
     "tool.text": "Text",
     "tool.text.desc": "Stamp uppercase letters and numbers using a built-in 5×7 pixel font.",
 
@@ -1401,6 +1413,9 @@ const translations = {
     "sc.ctrlc": "Copy the selected area",
     "sc.ctrlv": "Paste into the current selection",
     "sc.del": "Erase the contents of the current selection",
+    "sc.arrows": "Move the whole frame (with Move tool selected)",
+    "sc.shiftarrows": "Move the frame 8 pixels at once",
+    "sc.switch_tool_clears_mask": "Switching tools clears any painted mask automatically",
 
     "cta.title": "Ready to start drawing?",
     "cta.desc": "BGPE is free, offline, and portable. No account, no subscription, no cloud. Just download and create.",
@@ -1462,7 +1477,7 @@ const translations = {
 
     "tools.label": "Ferramentas",
     "tools.title": "Todas as ferramentas que você precisa. Nenhuma que não.",
-    "tools.subtitle": "Onze ferramentas focadas — cada uma feita para trabalho pixel-perfect.",
+    "tools.subtitle": "Doze ferramentas focadas — cada uma feita para trabalho pixel-perfect.",
 
     "tool.brush": "Pincel",
     "tool.brush.desc": "Pinte pixels com 4 efeitos: Normal, Spray, Brilho e Textura. Tamanho 1–16px.",
@@ -1475,15 +1490,17 @@ const translations = {
     "tool.picker": "Conta-gotas",
     "tool.picker.desc": "Clique em qualquer pixel para usar a cor dele como sua cor ativa.",
     "tool.rect": "Seleção Retangular",
-    "tool.rect.desc": "Arraste para selecionar uma área retangular. As ferramentas de pintura ficam dentro da caixa.",
+    "tool.rect.desc": "Arraste para selecionar uma área retangular. As ferramentas de pintura ficam dentro da caixa. Aperte R / G / S para girar, mover ou escalar a seleção.",
     "tool.ellipse": "Seleção Elíptica",
-    "tool.ellipse.desc": "Igual à Retangular, mas seleciona uma elipse. Ótimo para sprites circulares.",
+    "tool.ellipse.desc": "Igual à Retangular, mas seleciona uma elipse. Ótimo para sprites circulares. Aperte R / G / S para girar, mover ou escalar.",
     "tool.lasso": "Laço",
-    "tool.lasso.desc": "Clique em pontos para desenhar um polígono de seleção. Clique perto do primeiro ponto para fechar.",
+    "tool.lasso.desc": "Clique em pontos para desenhar um polígono de seleção. Clique perto do primeiro ponto para fechar. Aperte R / G / S para girar, mover ou escalar.",
     "tool.path": "Traço por Caminho",
     "tool.path.desc": "Marque pontos, clique direito para aplicar. 12 estilos: smooth, pontilhado, tracejado, zigue-zague, ondulado, fita, e mais.",
     "tool.move": "Mover",
-    "tool.move.desc": "Mova o frame ou a seleção livremente. Aperte G para agarrar e arrastar.",
+    "tool.move.desc": "Mova o frame inteiro com as setas do teclado. Shift+seta move 8 pixels de uma vez.",
+    "tool.mask": "Máscara",
+    "tool.mask.desc": "Pinte uma máscara livre, depois aperte R / G / S para girar, mover ou escalar só a área mascarada. Trocar de ferramenta limpa automaticamente.",
     "tool.text": "Texto",
     "tool.text.desc": "Carimbe letras maiúsculas e números usando a fonte pixel 5×7 embutida.",
 
@@ -1534,6 +1551,9 @@ const translations = {
     "sc.ctrlc": "Copiar a área selecionada",
     "sc.ctrlv": "Colar na seleção atual",
     "sc.del": "Apagar o conteúdo da seleção atual",
+    "sc.arrows": "Mover o frame inteiro (com a ferramenta Mover selecionada)",
+    "sc.shiftarrows": "Mover o frame 8 pixels de uma vez",
+    "sc.switch_tool_clears_mask": "Trocar de ferramenta limpa qualquer máscara pintada automaticamente",
 
     "cta.title": "Pronto para começar a desenhar?",
     "cta.desc": "BGPE é grátis, offline e portátil. Sem conta, sem assinatura, sem nuvem. Só baixar e criar.",
