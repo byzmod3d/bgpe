@@ -1,0 +1,66 @@
+{
+  "name": "bgpe",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win portable --x64 && rm -rf dist/win-unpacked dist/builder-debug.yml",
+    "build:linux": "electron-builder --linux AppImage --x64 && rm -rf dist/linux-unpacked dist/builder-debug.yml",
+    "build:all": "npm run build:win && npm run build:linux",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "electron": "^22.3.27",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.bravosgamebr.bgpe",
+    "productName": "BGPE",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "sprite_editor.html",
+      "icon.png",
+      "assets/**/*",
+      "!**/*.map",
+      "!**/node_modules/**"
+    ],
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.png",
+      "category": "Graphics",
+      "description": "BravosGamebr Pixel Editor",
+      "artifactName": "BGPE_v${version}_Linux_${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.png",
+      "artifactName": "BGPE_v${version}_Windows_${arch}.${ext}"
+    },
+    "asarUnpack": [
+      "assets/**/*"
+    ]
+  },
+  "description": "BravosGamebr Pixel Editor",
+  "author": "BravosGamebr",
+  "dependencies": {
+    "three": "^0.128.0"
+  }
+}

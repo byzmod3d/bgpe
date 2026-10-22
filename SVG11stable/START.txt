@@ -1,0 +1,26 @@
+
+##############################
+module
+cd ~/SVG11stable
+npm install
+
+npm start
+
+################################3
+cd /home/user/SVG11stable
+npm run clean
+npm run build:win
+npm run build:linux
+ls -lh dist/
+
+
+
+cd ~/SVG11stable
+npm start
+########################
+cd ~/Downloads
+chmod +x BGPE_v1.0.0_Linux_x86_64.AppImage
+
+
+
+
