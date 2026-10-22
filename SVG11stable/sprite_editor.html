@@ -9334,10 +9334,12 @@ const imp = {
         ed.closeImportModal();
         return;
       }
-      if (e.key === '1') { this.setTool('brush'); return; }
-      if (e.key === '2') { this.setTool('eraser'); return; }
-      if (e.key === '3') { this.setTool('bucket'); return; }
-      if (e.key === '4') { this.setTool('picker'); return; }
+      if (typeof impChar3D === 'undefined' || !impChar3D.active) {
+        if (e.key === '1') { this.setTool('brush'); return; }
+        if (e.key === '2') { this.setTool('eraser'); return; }
+        if (e.key === '3') { this.setTool('bucket'); return; }
+        if (e.key === '4') { this.setTool('picker'); return; }
+      }
     });
   },
 
@@ -10139,11 +10141,34 @@ const impChar3D = {
     dir.position.set(3, 6, 4); this.scene.add(dir);
     const dir2 = new THREE.DirectionalLight(0xffffff, 0.35);
     dir2.position.set(-3, 4, -4); this.scene.add(dir2);
-    this.scene.add(new THREE.GridHelper(10, 10, 0x4c4463, 0x2a2438));
+    this.gridHelper = new THREE.GridHelper(10, 10, 0x4c4463, 0x2a2438);
+    this.scene.add(this.gridHelper);
 
     this._offscreen = document.createElement('canvas');
     this._offscreen.width = this.RES; this._offscreen.height = this.RES;
     this._octx = this._offscreen.getContext('2d');
+
+    const wrap = canvas.parentNode;
+    const ball = document.createElement('div');
+    ball.id = 'imp-3d-orbitball';
+    ball.title = 'Arraste pra girar a camera';
+    const s = ball.style;
+    s.position = 'absolute'; s.right = '10px'; s.bottom = '10px';
+    s.width = '26px'; s.height = '26px'; s.borderRadius = '50%';
+    s.background = 'radial-gradient(circle at 30% 30%, #a78bfa, #6d28d9)';
+    s.border = '2px solid #c4b5fd'; s.cursor = 'grab'; s.zIndex = 40;
+    if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
+    wrap.appendChild(ball);
+    let bd = false, bx = 0, by = 0;
+    ball.addEventListener('mousedown', (ev) => { bd = true; bx = ev.clientX; by = ev.clientY; s.cursor = 'grabbing'; ev.preventDefault(); ev.stopPropagation(); });
+    window.addEventListener('mouseup', () => { bd = false; s.cursor = 'grab'; });
+    window.addEventListener('mousemove', (ev) => {
+      if (!bd) return;
+      this.rotY += (ev.clientX - bx) * 0.01;
+      this.rotX = Math.max(-1.4, Math.min(1.4, this.rotX + (ev.clientY - by) * 0.01));
+      bx = ev.clientX; by = ev.clientY;
+      this._renderOnce(); if (typeof imp !== 'undefined' && imp.redraw) imp.redraw();
+    });
 
     let dragging = false, lx = 0, ly = 0, btn = -1;
     canvas.addEventListener('mousedown', (e) => { dragging = true; lx = e.clientX; ly = e.clientY; btn = e.button; });
@@ -10152,25 +10177,61 @@ const impChar3D = {
       if (!dragging) return;
       const dx = e.clientX - lx, dy = e.clientY - ly;
       lx = e.clientX; ly = e.clientY;
-      if (btn === 1) { this.panX -= dx * 0.005; this.panY += dy * 0.005; }
-      else { this.rotY += dx * 0.01; this.rotX += dy * 0.01; this.rotX = Math.max(-1.4, Math.min(1.4, this.rotX)); }
+      if (btn === 1) {
+        if (e.shiftKey) { this.panX -= dx * 0.005; this.panY += dy * 0.005; }
+        else { this.rotY += dx * 0.01; this.rotX += dy * 0.01; this.rotX = Math.max(-1.4, Math.min(1.4, this.rotX)); }
+      } else if (btn === 2) { this.panX -= dx * 0.005; this.panY += dy * 0.005; }
       this._renderOnce(); if (typeof imp !== 'undefined' && imp.redraw) imp.redraw();
     });
     canvas.addEventListener('wheel', (e) => {
-      e.preventDefault(); this.dist = Math.max(1, Math.min(30, this.dist + (e.deltaY > 0 ? 0.5 : -0.5)));
+      e.preventDefault();
+      this.dist = Math.max(1, Math.min(30, this.dist * (e.deltaY > 0 ? 1.12 : 0.89)));
       this._renderOnce(); if (typeof imp !== 'undefined' && imp.redraw) imp.redraw();
     }, { passive: false });
+
+    // CONTROLES NO CANVAS VISIVEL DA ABA CAPTURE: o imp-3d-canvas (WebGL)
+    // e display:none, o 3D aparece composto no imp-canvas. Usamos a fase de
+    // CAPTURA no container pra interceptar ANTES dos handlers 2D do imp,
+    // e so quando um modelo 3D esta carregado (this.active).
+    const vc = document.getElementById('imp-canvas-container');
+    if (vc) {
+      let vOrbit = false, vx = 0, vy = 0;
+      vc.addEventListener('mousedown', (e) => {
+        if (!this.active) return;
+        if (e.button === 1 && !e.shiftKey) {
+          vOrbit = true; vx = e.clientX; vy = e.clientY;
+          e.preventDefault(); e.stopPropagation();
+        }
+      }, true);
+      window.addEventListener('mouseup', () => { vOrbit = false; });
+      window.addEventListener('mousemove', (e) => {
+        if (!vOrbit || !this.active) return;
+        this.rotY -= (e.clientX - vx) * 0.01;
+        this.rotX = Math.max(-1.4, Math.min(1.4, this.rotX + (e.clientY - vy) * 0.01));
+        vx = e.clientX; vy = e.clientY;
+        this._renderOnce(); if (typeof imp !== 'undefined' && imp.redraw) imp.redraw();
+      });
+      vc.addEventListener('wheel', (e) => {
+        if (!this.active) return;
+        e.preventDefault(); e.stopPropagation();
+        this.dist = Math.max(1, Math.min(30, this.dist * (e.deltaY > 0 ? 1.12 : 0.89)));
+        this._renderOnce(); if (typeof imp !== 'undefined' && imp.redraw) imp.redraw();
+      }, { capture: true, passive: false });
+      const ob = document.getElementById('imp-3d-orbitball');
+      if (ob && ob.parentNode !== vc) vc.appendChild(ob);
+    }
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
     document.addEventListener('keydown', (e) => {
       const m = document.getElementById('importModal');
       if (!m || m.style.display !== 'flex') return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.code === 'Numpad1') { e.preventDefault(); this.setView('front'); }
-      else if (e.code === 'Numpad3') { e.preventDefault(); this.setView('side'); }
-      else if (e.code === 'Numpad7') { e.preventDefault(); this.setView('top'); }
-      else if (e.code === 'Numpad5') { e.preventDefault(); this.setView('persp'); }
-      else if (e.code === 'Home') { e.preventDefault(); this.resetView(); }
+      const k = e.code;
+      if (k === 'Digit1' || k === 'Numpad1') { e.preventDefault(); this.setView(e.ctrlKey ? 'back' : 'front'); }
+      else if (k === 'Digit3' || k === 'Numpad3') { e.preventDefault(); this.setView(e.ctrlKey ? 'left' : 'side'); }
+      else if (k === 'Digit7' || k === 'Numpad7') { e.preventDefault(); this.setView(e.ctrlKey ? 'bottom' : 'top'); }
+      else if (k === 'Digit5' || k === 'Numpad5') { e.preventDefault(); this.setView('persp'); }
+      else if (k === 'Home') { e.preventDefault(); this.resetView(); }
     });
   },
 
@@ -10178,6 +10239,9 @@ const impChar3D = {
     if (which === 'front') { this.rotX = 0; this.rotY = 0; }
     if (which === 'side') { this.rotX = 0; this.rotY = Math.PI/2; }
     if (which === 'top') { this.rotX = Math.PI/2; this.rotY = 0; }
+    if (which === 'back') { this.rotX = 0; this.rotY = Math.PI; }
+    if (which === 'left') { this.rotX = 0; this.rotY = -Math.PI / 2; }
+    if (which === 'bottom') { this.rotX = -Math.PI / 2; this.rotY = 0; }
     if (which === 'persp') { this.rotX = 0.3; this.rotY = 0; }
     this._renderOnce(); if (typeof imp !== 'undefined' && imp.redraw) imp.redraw();
   },
@@ -10351,8 +10415,10 @@ const impChar3D = {
     const d = this.dist;
     this.camera.position.set(Math.sin(this.rotY) * Math.cos(this.rotX) * d + this.panX, Math.sin(this.rotX) * d + this.panY + this.targetY, Math.cos(this.rotY) * Math.cos(this.rotX) * d);
     this.camera.lookAt(this.panX, this.targetY + this.panY, 0);
+    if (this.gridHelper) this.gridHelper.visible = false;
     this.renderer.render(this.scene, this.camera);
     if (this._octx) { this._octx.clearRect(0, 0, this.RES, this.RES); this._octx.drawImage(this.renderer.domElement, 0, 0); }
+    if (this.gridHelper) { this.gridHelper.visible = true; this.renderer.render(this.scene, this.camera); }
   },
 
   _loop() {
