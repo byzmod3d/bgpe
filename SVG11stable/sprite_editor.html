@@ -8983,21 +8983,75 @@ const imp = {
     event.target.value = '';
   },
 
-  // Apaga TUDO: imagem + pintura + reseta view
+  // Apaga TUDO: imagem + pintura + video + 3D + reseta view
   clearAll() {
-    if (!confirm('Clear everything? (image + painting)')) return;
+    if (!confirm('Limpar TUDO? (Imagem + Pintura + Video + Modelo 3D)')) return;
+
+    // =========================================================
+    // PARAR O LOOP DO 3D (evita que ele sobrescreva o canvas)
+    // =========================================================
+    if (typeof impChar3D !== 'undefined') {
+      if (impChar3D.raf) {
+        cancelAnimationFrame(impChar3D.raf);
+        impChar3D.raf = null;
+      }
+    }
+
+    // 1. Imagem 2D
     this.image = null;
+    this.imageVisible = true;
+
+    // 2. Pintura
     this.grid = Array.from({ length: this.gridSize }, () => Array(this.gridSize).fill(null));
+    this.paintingVisible = true;
+
+    // 3. View 2D
     this.zoom = 1;
     this.panX = 0;
     this.panY = 0;
-    this.imageVisible = true;
-    this.paintingVisible = true;
+
+    // 4. Modelo 3D
+    if (typeof impChar3D !== 'undefined') {
+      if (impChar3D.mixer) { impChar3D.mixer.stopAllAction(); impChar3D.mixer = null; }
+      impChar3D.clipAction = null;
+      impChar3D.playing = false;
+      impChar3D.active = false;
+      impChar3D._mode = '3d'; // volta ao padrao
+      if (impChar3D.model) { impChar3D.scene.remove(impChar3D.model); impChar3D.model = null; }
+      if (impChar3D.skeletonHelper) {
+        impChar3D.scene.remove(impChar3D.skeletonHelper); impChar3D.skeletonHelper = null;
+      }
+      if (impChar3D._octx) impChar3D._octx.clearRect(0, 0, impChar3D.RES, impChar3D.RES);
+    }
+
+    // 5. Video
+    if (typeof impChar3D !== 'undefined' && impChar3D._video) {
+      if (!impChar3D._video.paused) impChar3D._video.pause();
+      impChar3D._video.removeAttribute('src');
+      impChar3D._video.load();
+      if (impChar3D._videoRAF) { cancelAnimationFrame(impChar3D._videoRAF); impChar3D._videoRAF = null; }
+      impChar3D._vidZoom = 1;
+      impChar3D._vidPanX = 0;
+      impChar3D._vidPanY = 0;
+    }
+
+    // 6. Controles UI
+    const ctrl = document.getElementById('imp-3d-controls');
+    if (ctrl) ctrl.style.display = 'none';
+    const animBox = document.getElementById('imp-3d-anim');
+    if (animBox) animBox.style.display = 'none';
+
+    // 7. Olhos das layers
     const ie = document.getElementById('imp-layer-image-eye');
-    if (ie) { ie.className = 'frame-eye on'; }
+    if (ie) ie.className = 'frame-eye on';
     const pe = document.getElementById('imp-layer-paint-eye');
-    if (pe) { pe.className = 'frame-eye on'; }
-    document.getElementById('imp-status').textContent = 'No image loaded • Click "Load Image"';
+    if (pe) pe.className = 'frame-eye on';
+
+    // 8. Status
+    const st = document.getElementById('imp-status');
+    if (st) st.textContent = 'Tudo limpo! Nenhum dado carregado.';
+
+    // 9. Redraw
     this.updateZoomLabel();
     this.redraw();
   },
@@ -10259,10 +10313,44 @@ const impChar3D = {
   resetView() { this.rotX = 0.3; this.rotY = 0; this.dist = 5; this.panX = 0; this.panY = 0; this._renderOnce(); if (typeof imp !== 'undefined' && imp.redraw) imp.redraw(); },
 
   loadFile(event) {
-    const file = event.target.files[0]; event.target.value = '';
+    const file = event.target.files[0];
+    event.target.value = '';
     if (!file) return;
     if (!window.THREE) { alert('Three.js not loaded'); return; }
     this._init();
+
+    // =========================================================
+    // LIMPEZA TOTAL DO VIDEO (nao pode sobrar NADA)
+    // =========================================================
+    if (this._video) {
+      if (!this._video.paused) this._video.pause();
+      this._video.removeAttribute('src');
+      this._video.load();
+    }
+    if (this._videoRAF) {
+      cancelAnimationFrame(this._videoRAF);
+      this._videoRAF = null;
+    }
+    this._vidZoom = 1;
+    this._vidPanX = 0;
+    this._vidPanY = 0;
+    this.playing = false;
+
+    // 1) Marca o modo como '3d' ANTES de carregar
+    this._mode = '3d';
+    this.active = false; // so ativa quando o modelo estiver carregado
+
+    // 2) Limpa o canvas offscreen (evita "fantasma" do video)
+    if (this._octx) this._octx.clearRect(0, 0, this.RES, this.RES);
+
+    // 3) Reexibe botoes 3D-only
+    document.querySelectorAll('#imp-3d-controls .btn-3d-only').forEach(b => b.style.display = '');
+
+    // 4) Atualiza status
+    const st = document.getElementById('imp-status');
+    if (st) st.textContent = 'Carregando modelo 3D...';
+
+    // 5) Carrega o arquivo
     const ext = file.name.split('.').pop().toLowerCase();
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -10290,9 +10378,33 @@ const impChar3D = {
   },
 
   _finalizeModel(obj, name, isFBX) {
-    // Se havia vídeo carregado, volta pro modo 3D
+    // =========================================================
+    // GARANTIA: modo 3D e video zero
+    // =========================================================
     this._mode = '3d';
-    if (this._video) { this._video.pause(); this.playing = false; }
+    if (this._video) {
+      if (!this._video.paused) this._video.pause();
+      this._video.removeAttribute('src');
+      this._video.load();
+    }
+    if (this._videoRAF) { cancelAnimationFrame(this._videoRAF); this._videoRAF = null; }
+    this._vidZoom = 1;
+    this._vidPanX = 0;
+    this._vidPanY = 0;
+    this.playing = false;
+
+    // Se havia vídeo carregado, volta pro modo 3D de forma DEFINITIVA
+    this._mode = '3d';
+    if (this._video) {
+      if (!this._video.paused) this._video.pause();
+      this._video.removeAttribute('src');
+      this._video.load();
+      if (this._videoRAF) { cancelAnimationFrame(this._videoRAF); this._videoRAF = null; }
+    }
+    this._vidZoom = 1;
+    this._vidPanX = 0;
+    this._vidPanY = 0;
+    this.playing = false;
     if (this.model) this.scene.remove(this.model);
     if (this.skeletonHelper) { this.scene.remove(this.skeletonHelper); this.skeletonHelper = null; }
     if (this.mixer) { this.mixer.stopAllAction(); this.mixer = null; }
@@ -10444,13 +10556,15 @@ const impChar3D = {
     if (this.raf) cancelAnimationFrame(this.raf);
     const interval = 1000 / this.FPS;
     const tick = (t) => {
-      this.raf = requestAnimationFrame(tick); // Sempre continua o loop
-      
+      this.raf = requestAnimationFrame(tick);
+
+      // ⭐ SE ESTIVER NO MODO VIDEO, NAO FAZ NADA (o loop do video cuida)
+      if (this._mode !== '3d') return;
+
       if (t - this.lastT < interval) return;
       const dt = (t - this.lastT) / 1000;
       this.lastT = t;
-      
-      // Atualiza a animação APENAS se estiver no Play
+
       if (this.mixer && this.playing) {
         this.mixer.update(dt);
         if (this.clipDuration > 0) {
@@ -10459,9 +10573,7 @@ const impChar3D = {
           if (sl) sl.value = Math.round(frac * 100);
         }
       }
-      // ⭐ pausado: NÃO mexe no slider. O valor arrastado pelo usuário
-      // fica intocado até o próximo Play ou próximo arrasto.
-      
+
       this._renderOnce();
       if (typeof imp !== 'undefined' && imp.redraw) imp.redraw();
     };
@@ -10480,10 +10592,50 @@ const impChar3D = {
     if (!file) return;
     this._init();
 
-    // Cria (ou reutiliza) o <video> escondido
+    // =========================================================
+    // LIMPEZA TOTAL DO 3D (nao pode sobrar NADA)
+    // =========================================================
+    // 1) Para o loop do 3D DEFINITIVAMENTE
+    if (this.raf) {
+      cancelAnimationFrame(this.raf);
+      this.raf = null;
+    }
+    // 2) Remove modelo
+    if (this.model) { this.scene.remove(this.model); this.model = null; }
+    // 3) Remove esqueleto
+    if (this.skeletonHelper) {
+      this.scene.remove(this.skeletonHelper);
+      this.skeletonHelper = null;
+    }
+    // 4) Para o mixer
+    if (this.mixer) { this.mixer.stopAllAction(); this.mixer = null; }
+    this.clipAction = null;
+    this.clipDuration = 0;
+    this.playing = false;
+    // 5) Limpa o canvas offscreen (evita "fantasma" do 3D)
+    if (this._octx) this._octx.clearRect(0, 0, this.RES, this.RES);
+
+    // =========================================================
+    // MARCA O MODO COMO VIDEO ANTES DE CARREGAR
+    // (para o redraw ja saber que deve desenhar video, nao 3D)
+    // =========================================================
+    this._mode = 'video';
+    this.active = true;
+
+    // 6) Esconde botoes 3D-only (Mesh, Skeleton, vistas)
+    document.querySelectorAll('#imp-3d-controls .btn-3d-only').forEach(b => b.style.display = 'none');
+    const boneBtn = document.getElementById('imp-3d-bone');
+    if (boneBtn) boneBtn.disabled = true;
+    // 7) Reset visual dos botoes
+    const meshBtn = document.getElementById('imp-3d-eye');
+    if (meshBtn) meshBtn.className = 'flex-1 py-1 rounded text-[10px] font-bold bg-emerald-600 text-white';
+    this.meshVisible = true;
+    this.skeletonVisible = false;
+
+    // 8) Cria/reutiliza o <video> escondido
     if (!this._video) {
       this._video = document.createElement('video');
-      this._video.muted = true;            // mudo por padrão (evita autoplay block)
+      this._video.muted = true;
       this._video.playsInline = true;
       this._video.crossOrigin = 'anonymous';
       this._video.style.display = 'none';
@@ -10491,54 +10643,60 @@ const impChar3D = {
     }
     const v = this._video;
 
+    // 9) Pausa o video antigo (se houver) e limpa
+    if (!v.paused) v.pause();
+    if (this._videoRAF) { cancelAnimationFrame(this._videoRAF); this._videoRAF = null; }
+
     v.onloadedmetadata = () => {
-      // Ajusta o tamanho do canvas de destino (o mesmo do 3D)
-      const c = document.getElementById('imp-3d-canvas');
-      if (c) {
-        this._videoCanvas = c;
-        // O canvas já é 512x512, o vídeo pode ter outro aspect;
-        // vamos letterbox (manter proporção) no drawImage.
-      }
-      // "Ativa" o modo vídeo: o redraw do imp vai mostrar o vídeo em cima
-      this._mode = 'video';
       this.clipDuration = v.duration || 0;
       this.playing = false;
-      this.active = true; // ⭐ Avisa o bridge 3D->2D que tem coisa pra desenhar
+      this._mode = 'video';
+      this.active = true;
 
-      // Habilita os controles (Play/Timeline) que já existem
       const ctrl = document.getElementById('imp-3d-controls');
       if (ctrl) ctrl.style.display = 'block';
 
-      // ⭐ Esconde botões que só fazem sentido no modo 3D (Mesh, Skeleton, vistas, zoom)
+      // Nao reexibe os botoes 3D: continua no modo video
       document.querySelectorAll('#imp-3d-controls .btn-3d-only').forEach(b => b.style.display = 'none');
+
       const animBox = document.getElementById('imp-3d-anim');
       if (animBox) animBox.style.display = 'block';
       const lbl = document.getElementById('imp-3d-anim-label');
-      if (lbl) lbl.textContent = 'Vídeo: ' + file.name + ' • ' + this.clipDuration.toFixed(2) + 's';
+      if (lbl) lbl.textContent = 'Video: ' + file.name + ' - ' + this.clipDuration.toFixed(2) + 's';
 
-      // Timeline: max=1000 (você já usa 0..1000 no HTML)
       const tl = document.getElementById('imp-3d-timeline');
       if (tl) tl.value = 0;
 
-      // ⭐ Bind dos controles de vídeo (scroll/pan) e zera zoom
       this._bindVideoControls();
       this._vidZoom = 1;
       this._vidPanX = 0;
       this._vidPanY = 0;
 
-      // Renderiza o 1º frame
-      this._renderVideoFrame();
-      if (typeof imp !== 'undefined' && imp.redraw) imp.redraw();
+      // ⭐ Pinta o 1o frame IMEDIATAMENTE (importante: o video pode
+      // nao ter frame decodificado ainda - currentTime=0 + play/pause)
+      v.currentTime = 0;
+      v.play().then(() => { v.pause(); }).catch(() => {});
+
+      // Renderiza primeiro frame com um pequeno delay
+      setTimeout(() => {
+        this._renderVideoFrame();
+        if (typeof imp !== 'undefined' && imp.redraw) imp.redraw();
+      }, 150);
     };
-    v.onerror = (err) => { console.error(err); alert('Erro ao carregar vídeo: ' + (v.error && v.error.message || 'formato não suportado')); };
+    v.onerror = (err) => {
+      console.error(err);
+      alert('Erro ao carregar video: ' + (v.error && v.error.message || 'formato nao suportado'));
+    };
 
     v.src = URL.createObjectURL(file);
     v.load();
-    this._lastVideoURL = v.src;  // para revogar depois se quiser
   },
 
   _renderVideoFrame() {
     if (!this._video) return;
+    // ⭐ GARANTIA: so renderiza video se o modo for 'video' (evita
+    // conflito com o loop do 3D sobrescrevendo por cima)
+    if (this._mode !== 'video') return;
     if (!this._octx || !this._offscreen) return;
 
     const W = this.RES, H = this.RES;
@@ -10682,52 +10840,63 @@ window.addEventListener('load', () => {
     // Guarda o redraw original do 2D
     imp._originalRedraw = imp.redraw;
     
-    // Cria o novo redraw que prioriza o 3D e VÍDEO
+    // ============================================================
+    // BRIDGE DEFINITIVO 3D -> 2D
+    // Respeita o _mode do impChar3D:
+    //   - 'video' -> desenha o _offscreen do video (que e atualizado
+    //                pelo _renderVideoFrame), NAO chama render do Three.
+    //   - '3d'    -> desenha o _offscreen do 3D (que e atualizado
+    //                pelo _loop do Three).
+    // - Em ambos, a area fora do quadrado fica escurecida.
+    // ============================================================
     imp.redraw = function() {
       if (!this.ctx) return;
-      
-      // Se tem um modelo 3D ou vídeo carregado
-      if (typeof impChar3D !== 'undefined' && impChar3D.active && impChar3D._offscreen) {
-        const W = this.canvas.width;
-        const H = this.canvas.height;
-        
-        // Limpa o canvas inteiro
-        this.ctx.clearRect(0, 0, W, H);
-        
-        // 1) Calcula o quadrado central
-        const frameSize = Math.min(W, H);
-        const frameX = (W - frameSize) / 2;
-        const frameY = (H - frameSize) / 2;
-        
-        // 2) Desenha o conteudo 3D/video APENAS dentro deste quadrado (sem esticar)
-        this.ctx.drawImage(
-          impChar3D._offscreen, 
-          0, 0, impChar3D.RES, impChar3D.RES, 
-          frameX, frameY, frameSize, frameSize 
-        );
-        
-        // 3) Escurece a area FORA do quadrado
-        this.ctx.save();
-        this.ctx.fillStyle = 'rgba(10, 6, 18, 0.72)';
-        this.ctx.fillRect(0, 0, W, frameY); // Topo
-        this.ctx.fillRect(0, frameY + frameSize, W, H - frameY - frameSize); // Base
-        this.ctx.fillRect(0, frameY, frameX, frameSize); // Esquerda
-        this.ctx.fillRect(frameX + frameSize, frameY, W - frameX - frameSize, frameSize); // Direita
-        this.ctx.restore();
 
-        // 4) Desenha a moldura ambar de captura
-        this.ctx.save();
-        this.ctx.strokeStyle = '#fbbf24';
-        this.ctx.lineWidth = 2;
-        this.ctx.setLineDash([]);
-        this.ctx.strokeRect(frameX + 0.5, frameY + 0.5, frameSize - 1, frameSize - 1);
-        this.ctx.restore();
-        
-        return; // Fim, pula o redraw 2D normal!
+      const tem3D = (typeof impChar3D !== 'undefined' &&
+                     impChar3D.active &&
+                     impChar3D._offscreen);
+      const modoVideo = tem3D && impChar3D._mode === 'video';
+      const modo3D    = tem3D && impChar3D._mode === '3d';
+
+      // Se nao tem NADA ativo (nem 3D nem video), roda o 2D normal
+      if (!modoVideo && !modo3D) {
+        this._originalRedraw();
+        return;
       }
-      
-      // Se nao tem 3D, roda o normal (imagem 2D + pintura)
-      this._originalRedraw();
+
+      const W = this.canvas.width;
+      const H = this.canvas.height;
+
+      this.ctx.clearRect(0, 0, W, H);
+
+      // 1) Calcula o quadrado central
+      const frameSize = Math.min(W, H);
+      const frameX = (W - frameSize) / 2;
+      const frameY = (H - frameSize) / 2;
+
+      // 2) Desenha o conteudo (video OU 3d) dentro do quadrado
+      this.ctx.drawImage(
+        impChar3D._offscreen,
+        0, 0, impChar3D.RES, impChar3D.RES,
+        frameX, frameY, frameSize, frameSize
+      );
+
+      // 3) Escurece a area FORA do quadrado
+      this.ctx.save();
+      this.ctx.fillStyle = 'rgba(10, 6, 18, 0.72)';
+      this.ctx.fillRect(0, 0, W, frameY);
+      this.ctx.fillRect(0, frameY + frameSize, W, H - frameY - frameSize);
+      this.ctx.fillRect(0, frameY, frameX, frameSize);
+      this.ctx.fillRect(frameX + frameSize, frameY, W - frameX - frameSize, frameSize);
+      this.ctx.restore();
+
+      // 4) Moldura ambar
+      this.ctx.save();
+      this.ctx.strokeStyle = '#fbbf24';
+      this.ctx.lineWidth = 2;
+      this.ctx.setLineDash([]);
+      this.ctx.strokeRect(frameX + 0.5, frameY + 0.5, frameSize - 1, frameSize - 1);
+      this.ctx.restore();
     };
     
     console.log('[3D Bridge] Ligado com sucesso!');
